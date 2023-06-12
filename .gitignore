@@ -361,3 +361,10 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/Assets/Imports
+/Assets/Resource
+/Assets/Tree_Textures
+/Library
+/ProjectSettings
+/Temp
+/UserSettings
