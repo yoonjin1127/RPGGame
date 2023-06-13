@@ -5,9 +5,13 @@ using UnityEngine.InputSystem;
 
 public class PlayerMover : MonoBehaviour
 {
+    [SerializeField] bool debug;
+
     [SerializeField] float walkSpeed;
     [SerializeField] float runSpeed;
     [SerializeField] float jumpSpeed;
+    [SerializeField] float walkStepRange;
+    [SerializeField] float runStepRange;
 
     private CharacterController controller;
     private Animator anim;
@@ -28,6 +32,9 @@ public class PlayerMover : MonoBehaviour
         Move();
         Fall();
     }
+
+    // 0.5초마다 발소리를 낸다
+    float lastStepTIme = 0.5f;
 
     private void Move()
     {
@@ -63,7 +70,26 @@ public class PlayerMover : MonoBehaviour
         // 앞방향과 오른쪽 방향에서, 누르는 값만큼 해당 방향을 바라본다
         Quaternion lookRotation = Quaternion.LookRotation(forwardVec * moveDir.z + rightVec * moveDir.x);
         // 자연스러운 회전과 방향전환을 위해 선형보간 진행
-        transform.rotation = Quaternion.Lerp(transform.rotation, lookRotation, 0.01f);       
+        transform.rotation = Quaternion.Lerp(transform.rotation, lookRotation, 0.1f);
+
+        lastStepTIme -= Time.deltaTime;
+        // 0.5초 흘렀을 때
+        if (lastStepTIme < 0)
+        {
+            lastStepTIme = 0.5f;
+            GenerateFootStepSound();
+        }
+    }
+    // 발소리 발생
+    private void GenerateFootStepSound()
+    {
+        // 걷고 있으면 walkStepRange, 그렇지 않다면 runStepRange를 사용하는 삼항연산자
+        Collider[] colliders = Physics.OverlapSphere(transform.position, walk ? walkStepRange : runStepRange);
+        foreach (Collider collider in colliders)
+        {
+            IListenable listenable = collider.GetComponent<IListenable>();
+            listenable?.Listen(transform);
+        }
     }
 
     private void OnMove(InputValue value)
@@ -86,7 +112,6 @@ public class PlayerMover : MonoBehaviour
         if (controller.isGrounded && ySpeed < 0)
         {
             ySpeed = 0;
-            // anim.SetBool("isJumping", false);
         }
 
         controller.Move(Vector3.up * ySpeed * Time.deltaTime);
@@ -98,11 +123,18 @@ public class PlayerMover : MonoBehaviour
         ySpeed = jumpSpeed;
 
         // 트리거 파라미터 Jump 활성화
-        anim.SetTrigger("Jump");
+        anim.SetTrigger("Jump");    
     }
 
     private void OnJump(InputValue value)
     {
         Jump();
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.cyan;
+        Gizmos.DrawWireSphere(transform.position, walkStepRange);
+        Gizmos.DrawWireSphere(transform.position, runStepRange);
     }
 }
